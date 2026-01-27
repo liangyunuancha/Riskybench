@@ -9,6 +9,7 @@
 
 ## 🔔 News
 
+- [2026-01] **[Qwen3-Max-Thinking](https://qwen.ai/blog?id=qwen3-max-thinking)** reported our Vita-Bench to evaluate and demonstrate its tool use capabilities (the averge score of 4 domains)！We invite the community to adopt Vita-Bench as the definitive touchstone for tool use performance assessment, and **we appreciate diverse utilization & interpretation of our benchmark results**. What's more, feel free to check our recently updated version!
 - [2026-01] VitaBench has been accepted to **[ICLR 2026](https://openreview.net/forum?id=rtcX9qOBaz)**! 🎉
 - [2026-01] An **updated version** of VitaBench is released with rectified datasets and tools, upgraded evaluation models, and updated metrics for proprietary and open language models based on the new evaluator.
 - [2025-11] The **English version** of the VitaBench dataset is now released! It includes fully translated tasks and databases, enabling broader international use. Try it out!
