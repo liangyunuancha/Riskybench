@@ -1,1 +1,1 @@
-# Copyright Sierra
+"""Domain package (anonymized for review)."""

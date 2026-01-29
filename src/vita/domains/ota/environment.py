@@ -44,8 +44,8 @@ def get_environment(
     )
 
 
-def get_tasks(language: str = None) -> list[Task]:
-    task_path = get_task_file_path("ota", language)
+def get_tasks(language: str = None, dataset_file: str = None) -> list[Task]:
+    task_path = get_task_file_path("ota", language, dataset_file)
     with open(task_path, "r") as fp:
         tasks = json.load(fp)
     return [Task.model_validate(task) for task in tasks]

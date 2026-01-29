@@ -35045,7 +35045,7 @@
         "personality": "Impatient, frequently hurries others, lacks patience to wait for processes"
       }
     },
-    "instructions": "On Mid-Autumn Festival, you want to take your child to a workshop to make cookies. Since neither you nor your child has baking experience, the store must provide teaching services. The workshop should be within 3 kilometers from home, and you plan to purchase a Parent-Child package and make a reservation for 3 PM that day. The property management has notified that there will be a power outage at your home, but the exact time when power will be restored is uncertain, so you plan to take your child out for dinner that evening. Both of you like fish, and you want to first buy a Hairtail Fish Two-Person Set. The restaurant should be listed on Meituan's rankings, have high ratings, and offer light flavored dishes.",
+    "instructions": "On Mid-Autumn Festival, you want to take your child to a workshop to make cookies. Since neither you nor your child has baking experience, the store must provide teaching services. The workshop should be within 3 kilometers from home, and you plan to purchase a Parent-Child package and make a reservation for 3 PM that day. The property management has notified that there will be a power outage at your home, but the exact time when power will be restored is uncertain, so you plan to take your child out for dinner that evening. Both of you like fish, and you want to first buy a Hairtail Fish Two-Person Set. The restaurant should be listed on Platform's rankings, have high ratings, and offer light flavored dishes.",
     "evaluation_criteria": {
       "expected_states": [
         {

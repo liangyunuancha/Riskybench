@@ -9,14 +9,6 @@ description = "The vita package"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
-authors = [
-    { name = "Wei He", email = "hewei79@meituan.com" },
-    { name = "Yueqing Sun", email = "sunyueqing@meituan.com" },
-    { name = "Hongyan Hao", email = "haohongyan02@meituan.com" },
-    { name = "Xueyuan Hao", email = "haoxueyuan03@meituan.com" },
-    { name = "Zhikang Xia", email = "xiazhikang@meituan.com" },
-    { name = "Qi Gu", email = "guqi03@meituan.com" },
-]
 dependencies = [
     "fs",
     "rich",

@@ -220,6 +220,20 @@ class RunConfig(BaseModel):
             default=False,
         ),
     ]
+    dataset_file: Annotated[
+        Optional[str],
+        Field(
+            description="The dataset file name to use for loading tasks. If not provided, will use default task file based on language. For OTA domain, available files: tasks.json, tasks_en.json, tasks_user_ins_chinese.json, tasks_pre.json, tasks_en_pre.json, task_chinese_ota_env_noise_processed.json, task_memory_history.json",
+            default=None,
+        ),
+    ]
+    system_prompt_injection: Annotated[
+        Optional[str],
+        Field(
+            description="specify attack type.",
+            default=None,
+        ),
+    ]
 
     def validate(self) -> None:
         """
@@ -278,6 +292,9 @@ class AgentInfo(BaseModel):
     llm: Optional[str] = Field(description="The LLM used by the agent.", default=None)
     llm_args: Optional[dict] = Field(
         description="The arguments to pass to the LLM for the agent.", default=None
+    )
+    system_prompt_injection: Optional[str] = Field(
+        description="The malicious system prompt injected for testing.", default=None
     )
 
 

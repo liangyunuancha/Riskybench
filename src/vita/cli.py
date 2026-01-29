@@ -175,6 +175,17 @@ def add_run_args(parser):
         action="store_true",
         help="Re-run tasks specified by --task-ids. If used with --re-evaluate-file, will re-run specified tasks and then re-evaluate all tasks together.",
     )
+    parser.add_argument(
+        "--dataset-file",
+        type=str,
+        default=None,
+        help="The dataset file name to use for loading tasks. If not provided, will use default task file based on language. For OTA domain, available files: tasks.json, tasks_en.json, tasks_user_ins_chinese.json, tasks_pre.json, tasks_en_pre.json, task_chinese_ota_env_noise_processed.json, task_memory_history.json",
+    )
+    parser.add_argument(
+        "--system-prompt-injection",
+        type=str,
+        default="",
+    )
     
 
 
@@ -212,7 +223,9 @@ def main():
                 csv_output_file=getattr(args, 'csv_output', None),
                 enable_think=args.enable_think,
                 language=args.language,
-                re_run=getattr(args, 're_run', False)
+                re_run=getattr(args, 're_run', False),
+                dataset_file=getattr(args, 'dataset_file', None),
+                  system_prompt_injection=getattr(args, 'system_prompt_injection', None)
             )
         )
     )

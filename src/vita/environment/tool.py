@@ -1,6 +1,5 @@
 """
-Adapted from https://github.com/BerriAI/appl/blob/main/appl/core/tool.py
-and modified to fit the needs of the project.
+Tool abstraction used by the simulator.
 """
 
 import inspect

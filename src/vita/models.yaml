@@ -7,7 +7,8 @@ default:
   temperature: 0.0
   max_input_tokens: 32768
   headers:
-    Authorization: "Bearer <api_key>"
+    # 填入你自己的鉴权信息（请勿提交任何真实密钥到匿名仓库）
+    Authorization: "Bearer <REDACTED>"
     Content-Type: "application/json"
 
 models:

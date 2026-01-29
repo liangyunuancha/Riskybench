@@ -1,133 +1,90 @@
 <div align=center><h1>
-    🌱VitaBench: Benchmarking LLM Agents<br>
-    with Versatile Interactive Tasks
+    🌱 Riskybench: 风险评测与数据生成
 </h1></div>
 
-<p align="center">
-  📃 <a href="https://arxiv.org/abs/2509.26490" target="_blank">Paper</a > • 🌐 <a href="https://vitabench.github.io/" target="_blank">Website</a > • 🏆 <a href="https://vitabench.github.io/#Leaderboard" target="_blank">Leaderboard</a > • 🤗 <a href="https://huggingface.co/datasets/meituan-longcat/VitaBench" target="_blank">Dataset</a ><br>
-</p >
+## 📖 简介
 
-## 🔔 News
+**Riskybench** 用于对交互式任务型智能体进行风险相关评测，并提供配套的数据生成脚本与可复现实验入口。为满足论文匿名审稿要求，本仓库已移除与身份/机构相关的外链、致谢、作者信息等内容。
 
-- [2026-01] **[Qwen3-Max-Thinking](https://qwen.ai/blog?id=qwen3-max-thinking)** reported our Vita-Bench to evaluate and demonstrate its tool use capabilities (the averge score of 4 domains)！We invite the community to adopt Vita-Bench as the definitive touchstone for tool use performance assessment, and **we appreciate diverse utilization & interpretation of our benchmark results**. What's more, feel free to check our recently updated version!
-- [2026-01] VitaBench has been accepted to **[ICLR 2026](https://openreview.net/forum?id=rtcX9qOBaz)**! 🎉
-- [2026-01] An **updated version** of VitaBench is released with rectified datasets and tools, upgraded evaluation models, and updated metrics for proprietary and open language models based on the new evaluator.
-- [2025-11] The **English version** of the VitaBench dataset is now released! It includes fully translated tasks and databases, enabling broader international use. Try it out!
-- [2025-10] Our paper is released on arXiv: [VitaBench: Benchmarking LLM Agents with Versatile Interactive Tasks in Real-world Applications](https://arxiv.org/abs/2509.26490)
-- [2025-10] The VitaBench suite is released, including the **codebase, dataset and evaluation pipeline**! If you have any questions, feel free to raise issues and/or submit pull requests for new features of bug fixes.
+- **数据生成逻辑**（`generate_data/`）：支持多领域、多攻击面的评测数据生成，便于复现与扩展风险/攻击类实验。
+- **扩展的 vita 参数**（`src/vita`）：如任务集选择、自定义数据集文件、系统提示注入、重跑与重评等，满足风险评测与消融实验需求。
 
-## 📖 Introduction
+评测基于多领域的交互式任务设置（外卖、到店、酒旅等），支持单域与跨域、中英文任务及多种评估类型。
 
-In this paper, we introduce **VitaBench**, a challenging benchmark that evaluates agents on **v**ersatile **i**nteractive **ta**sks grounded in real-world settings. Drawing from daily applications in food delivery, in-store consumption, and online travel services, VitaBench presents agents with the most complex life-serving simulation environment to date, comprising **66 tools**. Through a framework that eliminates domain-specific policies, we enable flexible composition of these scenarios and tools, yielding **100 cross-scenario tasks (main results) and 300 single-scenario tasks**. Each task is derived from multiple real user requests and requires agents to reason across temporal and spatial dimensions, utilize complex tool sets, proactively clarify ambiguous instructions, and track shifting user intent throughout multi-turn conversations. 
+---
 
-Moreover, we propose a rubric-based sliding window evaluator, enabling robust assessment of diverse solution pathways in complex environments and stochastic interactions. Our comprehensive evaluation reveals that even the most advanced models achieve only 32.5% success rate on cross-scenario tasks, and less than 62% success rate on others. Overall, we believe VitaBench will serve as a valuable resource for advancing the development of AI agents in practical real-world applications.
+## 🌱 项目结构概览
 
-> *The name “Vita” derives from the Latin word for “Life”, reflecting our focus on life-serving applications.*
+| 模块 | 说明 |
+|------|------|
+| `generate_data/` | 数据生成脚本：Delivery、Instore、OTA 等领域的多攻击面（ui/env/tf/ms/sys）任务生成 |
+| `src/vita/` | 评测核心：agent、environment、evaluator、CLI 及扩展参数 |
+| `data/vita/domains/` | 各领域任务与跨域任务数据（如 `tasks.json`、`tasks_en.json`） |
 
-![overall_performance](assets/overall_performance.png)
+---
 
-## 🌱 Benchmark Details
+## 🛠️ 快速开始
 
-VitaBench provides an evaluation framework that supports model evaluations on both single-domain and cross-domain tasks through flexible configuration. For cross-domain evaluation, simply connect multiple domain names with commas—this will automatically merge the environments of the specified domains into a unified environment.
+### 安装
 
-Statistics of databases and environments:
-
-|                                | Cross-Scenarios<br>(All domains) | Delivery | In-store |  OTA  |
-| :----------------------------- | :-------------: | :------: | :------: | :---: |
-| **Databases**                  |                 |          |          |       |
-| &nbsp;&nbsp; Service Providers |      1,324      |   409    |   611    | 1,437 |
-| &nbsp;&nbsp; Products          |      6,942      |   784    |  3,277   | 9,693 |
-| &nbsp;&nbsp; Transactions      |       334       |    48    |    36    |  154  |
-| **API Tools**                  |                 |          |          |       |
-| &nbsp;&nbsp; Write             |       27        |    4     |    9     |  14   |
-| &nbsp;&nbsp; Read              |       33        |    10    |    10    |  19   |
-| &nbsp;&nbsp; General           |        6        |    6     |    5     |   5   |
-| **Tasks**                      |       100       |   100    |   100    |  100  |
-
-
-
-## 🛠️ Quick Start
-
-### Installation
-
-1. Clone the repository:
-```bash
-git clone https://github.com/meituan-longcat/vitabench.git
-cd vitabench
-```
-
-2. Install Vita-Bench
+在项目根目录下安装依赖并启用 `vita` 命令：
 
 ```bash
 pip install -e .
 ```
 
-This will enable you to run the `vita` command.
+### 配置 LLM（models.yaml）
 
-
-### Setup LLM Configurations
-
-If you want to customize the location of the `models.yaml` file, you can specify the environment variable `VITA_MODEL_CONFIG_PATH` (default path from repository root is `src/vita/models.yaml`). For example:
+可通过环境变量指定模型配置路径（默认：`src/vita/models.yaml`）：
 
 ```bash
-export VITA_MODEL_CONFIG_PATH=/path/to/your/model/configuration
+export VITA_MODEL_CONFIG_PATH=./src/vita/models.yaml
 ```
 
-Example `models.yaml` file
+示例 `models.yaml`：
 
 ```yaml
 default:
   base_url: <base url>
-  temperature: <temperature>
-  max_input_tokens: <max input tokens>
+  temperature: 0.0
+  max_input_tokens: 32768
   headers:
-    Accept: "*/*"
-    Accept-Encoding: "gzip, deflate, br"
     Content-Type: "application/json"
-    Authorization: "Bearer <api key>"
-    Connection: "keep-alive"
-    Cookie: <cookie>
-    User-Agent: <user agent>
 
 models:
   - name: <model name>
-    max_tokens: <max completion tokens (for some models, use max_completion_tokens)>
-    max_input_tokens: <max input tokens>
-    reasoning_effort: "high"
-    thinking: 
-      type: "enabled"
-      budget_tokens: <budget tokens>
-    cost_1m_token_dollar:
-      prompt_price: <dollars per 1 million tokens>
-      completion_price: <dollars per 1 million tokens>
+    max_tokens: 8192
+    max_input_tokens: 32768
 ```
-The default configuration can apply to all models, the custom model configuration can overwrite default values.
 
-### Run evaluations
-
-To run a test evaluation:
+### 运行评测（vita run）
 
 ```bash
 vita run \
-  --domain <domain> \              # support single domain (delivery/instore/ota) and cross domain ([delivery,instore,ota])
-  --user-llm <model name> \        # model name in models.yaml
-  --agent-llm <model name> \       # model name in models.yaml
-  --enable-think \                 # Enable think mode for the agent. Default is False.
-  --evaluator-llm <model name> \   # The LLM to use for evaluation.
-  --num-trials 1 \                 # (Optional) The number of times each task is run. Default is 1.
-  --num-tasks 1 \                  # (Optional) The number of tasks to run. Default is the number of all tasks.
-  --task-ids 1 \                   # (Optional) Run only the tasks with the given IDs. Default is run all tasks.
-  --max-steps 300 \                # (Optional) The maximum number of steps to run the simulation. Default is 300.
-  --max-concurrency 1 \            # (Optional) The maximum number of concurrent simulations to run. Default is 1.
-  --csv-output <csv path> \        # (Optional) Path to CSV file to append results.
-  --language <chinese/english> \   # (Optional) The language to use for prompts and tasks. Choices: chinese, english. Default is chinese.
+  --domain <domain> \                    # 单域: delivery / instore / ota；跨域: delivery,instore,ota
+  --user-llm <model name> \
+  --agent-llm <model name> \
+  --evaluator-llm <model name> \
+  --enable-think \                       # 可选，启用 agent 思考模式
+  --num-trials 1 \                       # 可选，每任务运行次数，默认 1
+  --num-tasks 1 \                        # 可选，运行任务数量
+  --task-ids 1 2 3 \                     # 可选，仅运行指定任务 ID
+  --max-steps 300 \                      # 可选，单次仿真最大步数
+  --max-concurrency 1 \                  # 可选，并发数
+  --csv-output <csv path> \              # 可选，结果追加到 CSV
+  --language <chinese/english> \         # 可选，默认 chinese
+  --task-set-name <name> \               # 可选，指定任务集（与 domain 一致或 cross_domain）
+  --dataset-file <filename> \           # 可选，自定义任务文件名（如生成的数据文件）
+  --system-prompt-injection <text> \     # 可选，向 agent 系统提示追加的注入内容
+  --re-evaluate-file <path> \            # 可选，重评模式：指定已有仿真结果文件
+  --re-run \                             # 可选，与 --re-evaluate-file 配合，重跑指定任务后再整体重评
+  --save-to <path>                       # 可选，仿真结果保存路径
 ```
 
-Results will be saved in `data/simulations/`.
+结果默认落在 `data/simulations/`。
 
-### Re-evaluation simulation
+### 重评已有仿真
 
-Re-evaluate the simulation instead of running new ones.
 ```bash
 vita run \
   --re-evaluate-file <simulation file path> \
@@ -136,35 +93,62 @@ vita run \
   --save-to <new simulation file path>
 ```
 
-### Viewing Results
+### 查看结果
+
 ```bash
-vita view \
---file <simulation file path> # If provided, only view the given simulation
+vita view --file <simulation file path>
+vita view --file <path> --only-show-failed
+vita view --file <path> --only-show-all-failed
 ```
 
+### 数据生成（generate_data）
 
+在**项目根目录**下执行。为避免在匿名仓库中出现任何密钥相关内容，本 README 不包含 API key 示例；请在本地环境中自行配置所需的运行时环境变量。
 
-## 🔎 Citation
+统一调用格式：
 
-If you find our work helpful or relevant to your research, please kindly cite our paper:
-
-```
-@article{he2025vitabench,
-      title={VitaBench: Benchmarking LLM Agents with Versatile Interactive Tasks in Real-world Applications}, 
-      author={He, Wei and Sun, Yueqing and Hao, Hongyan and Hao, Xueyuan and Xia, Zhikang and Gu, Qi and Han, Chengcheng and Zhao, Dengchang and Su, Hui and Zhang, Kefeng and Gao, Man and Su, Xi and Cai, Xiaodong and Cai, Xunliang and Yang, Yu and Zhao, Yunke},
-      journal={arXiv preprint arXiv:2509.26490},
-      year={2025}
-}
+```bash
+bash generate_data/<领域>/run_generate.sh <original_file> <start_idx> <number_of_tasks> <output_path> [攻击面]
 ```
 
-## 🤗 Acknowledgement
+| 参数 | 说明 |
+|------|------|
+| original_file | 原始英文任务文件（如 `./data/vita/domains/<领域>/tasks_en.json`） |
+| start_idx | 起始任务下标（从 0 开始） |
+| number_of_tasks | 生成任务数量 |
+| output_path | 输出目录（建议 `./data/vita/domains/<领域>/`） |
+| 攻击面 | **仅 OTA** 支持：ui / env / tf / ms / sys / all，默认 all |
 
-We adapted part of the [tau2-bench](https://github.com/sierra-research/tau2-bench)'s codebase in building our evaluation framework, and we greatly appreciate their contributions to the agent community.
+**示例（建议先试跑 1 个任务）：**
+
+```bash
+# Delivery
+bash generate_data/delivery/run_generate.sh \
+  ./data/vita/domains/delivery/tasks_en.json 0 1 ./data/vita/domains/delivery/
+
+# OTA（仅 ui）
+bash generate_data/ota/run_generate.sh \
+  ./data/vita/domains/ota/tasks_en.json 0 1 ./data/vita/domains/ota/ ui
+
+# Instore
+bash generate_data/instore/run_generate.sh \
+  ./data/vita/domains/instore/tasks_en.json 0 1 ./data/vita/domains/instore/
+```
+
+生成文件命名：`{领域}_{攻击面}_{任务数}_en.json`。使用自定义生成文件进行评测时，可将生成的文件放入 `data/vita/domains/<领域>/`，再通过 `--dataset-file <filename>` 指定。
+
+更详细的配置与各领域说明见：
+
+- [generate_data/README.md](generate_data/README.md)
+- [generate_data/delivery/README.md](generate_data/delivery/README.md)
+- [generate_data/ota/README.md](generate_data/ota/README.md)
+
+---
 
 ## 📜 License
 
-This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
+本项目采用 MIT License，详见 [LICENSE](./LICENSE)。
 
 ## 📪 Support
 
-For questions and support, please open an issue on GitHub or contact the maintainers.
+如有问题或建议，请在仓库中提 Issue 或联系维护者。

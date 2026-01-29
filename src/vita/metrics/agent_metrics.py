@@ -52,7 +52,7 @@ class AgentMetrics(BaseModel):
 def pass_hat_k(num_trials: int, success_count: int, k: int) -> float:
     """
     Compute the pass^k metric for the given number of trials, success count, and k.
-    from https://arxiv.org/pdf/2406.12045
+    Reference: pass@k / pass^k (see public literature).
     Args:
         num_trials: The number of trials.
         success_count: The number of successful trials.
@@ -349,7 +349,7 @@ def display_metrics(metrics: AgentMetrics) -> None:
     print(f"🏆 Average reward: {metrics.avg_reward}")
     print("📈 Pass^k")
     for k, pass_hat_k in metrics.pass_hat_ks.items():
-        print(f"  k={k}: {pass_hat_k:.4f}")
+        print(f"  k={k}: {pass_hat_k}")
     
     # Display pass@k and average@k metrics
     if metrics.pass_at_n:

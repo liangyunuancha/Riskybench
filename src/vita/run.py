@@ -50,16 +50,29 @@ def get_environment_info(
         )
 
 
-def load_tasks(task_set_name: str, language: str = None) -> list[Task]:
+def load_tasks(task_set_name: str, language: str = None, dataset_file: str = None) -> list[Task]:
     """
     Loads the tasks for the given domain.
     """
     global registry
     if ',' in task_set_name:
         task_loader = registry.get_tasks_loader("cross_domain")
+        # Check if task_loader supports dataset_file parameter
+        import inspect
+        sig = inspect.signature(task_loader)
+        if 'dataset_file' in sig.parameters:
+            tasks = task_loader(language, dataset_file)
+        else:
+            tasks = task_loader(language)
     else:
         task_loader = registry.get_tasks_loader(task_set_name)
-    tasks = task_loader(language)
+        # Check if task_loader supports dataset_file parameter
+        import inspect
+        sig = inspect.signature(task_loader)
+        if 'dataset_file' in sig.parameters:
+            tasks = task_loader(language, dataset_file)
+        else:
+            tasks = task_loader(language)
     return tasks
 
 
@@ -68,16 +81,17 @@ def get_tasks(
     task_ids: Optional[list[str]] = None,
     num_tasks: Optional[int] = None,
     language: str = None,
+    dataset_file: str = None,
 ) -> list[Task]:
     """
     Loads the tasks for the given domain.
     """
     if task_ids is None and num_tasks is None:
-        return load_tasks(task_set_name=task_set_name, language=language)
+        return load_tasks(task_set_name=task_set_name, language=language, dataset_file=dataset_file)
     tasks = []
     if task_ids is not None:
         tasks = [
-            task for task in load_tasks(task_set_name=task_set_name, language=language) if task.id in task_ids
+            task for task in load_tasks(task_set_name=task_set_name, language=language, dataset_file=dataset_file) if task.id in task_ids
         ]
         if len(tasks) != len(task_ids):
             missing_tasks = set(task_ids) - set([task.id for task in tasks])
@@ -85,7 +99,7 @@ def get_tasks(
                 f"Not all tasks were found for task set {task_set_name}: {missing_tasks}"
             )
     if num_tasks is not None:
-        tasks = load_tasks(task_set_name=task_set_name, language=language)[:num_tasks]
+        tasks = load_tasks(task_set_name=task_set_name, language=language, dataset_file=dataset_file)[:num_tasks]
     return tasks
 
 
@@ -123,7 +137,7 @@ def run_domain(config: RunConfig) -> Results:
         task_set_name = config.domain
     else:
         task_set_name = config.task_set_name
-    tasks = get_tasks(task_set_name, config.task_ids, config.num_tasks, config.language)
+    tasks = get_tasks(task_set_name, config.task_ids, config.num_tasks, config.language, config.dataset_file)
 
     num_trials = config.num_trials
     save_to = config.save_to
@@ -155,6 +169,7 @@ def run_domain(config: RunConfig) -> Results:
         llm_evaluator=config.llm_evaluator,
         llm_args_evaluator=config.llm_args_evaluator,
         language=config.language,
+        system_prompt_injection=config.system_prompt_injection
     )
     
     metrics = compute_metrics(simulation_results)
@@ -193,6 +208,7 @@ def run_tasks(
     llm_evaluator: Optional[str] = None,
     llm_args_evaluator: Optional[dict] = None,
     language: str = None,
+    system_prompt_injection: Optional[str] = None,
 ) -> Results:
     """
     Runs tasks for a given domain.
@@ -237,10 +253,10 @@ def run_tasks(
     random.seed(seed)
 
     seeds = [random.randint(0, 1000000) for _ in range(num_trials)]
-    if llm_args_agent is not None and "seed" in llm_args_agent:
+    if "seed" in llm_args_agent:
         logger.warning("Each trial will modify the seed for the agent")
 
-    if llm_args_user is not None and "seed" in llm_args_user:
+    if "seed" in llm_args_user:
         logger.warning("Each trial will modify the seed for the user")
 
     lock = threading.Lock()
@@ -258,6 +274,7 @@ def run_tasks(
         max_errors=max_errors,
         seed=seed,
         language=language,
+        system_prompt_injection=system_prompt_injection
     )
     simulation_results = Results(
         info=info,
@@ -378,6 +395,7 @@ def run_tasks(
                 llm_evaluator=llm_evaluator,
                 llm_args_evaluator=llm_args_evaluator,
                 language=language,
+                system_prompt_injection=system_prompt_injection
             )
             simulation.trial = trial
             if console_display:
@@ -392,8 +410,8 @@ def run_tasks(
             return {"status": "failed", "task_id": task.id, "trial": trial, "error": str(e)}
 
     args = []
-    for trial in range(num_trials):
-        for i, task in enumerate(tasks):
+    for i, task in enumerate(tasks):
+        for trial in range(num_trials):
             if (trial, task.id, seeds[trial]) in done_runs:
                 ConsoleDisplay.console.print(
                     f"[bold yellow]Skipping task {task.id}, trial {trial} because it has already been run.[/bold yellow]"
@@ -456,6 +474,7 @@ def run_task(
     llm_evaluator: Optional[str] = None,
     llm_args_evaluator: Optional[dict] = None,
     language: str = None,
+    system_prompt_injection: Optional[str] = None
 ) -> SimulationRun:
     """
     Runs tasks for a given domain.
@@ -502,7 +521,9 @@ def run_task(
                 enable_think=enable_think,
                 llm_evaluator=llm_evaluator,
                 llm_args_evaluator=llm_args_evaluator,
-                language=language
+                language=language,
+                system_prompt_injection=system_prompt_injection
+
             )
         except Exception as e:
             if attempt < max_retries:
@@ -532,6 +553,7 @@ def _run_task_internal(
     llm_evaluator: Optional[str] = None,
     llm_args_evaluator: Optional[dict] = None,
     language: str = None,
+    system_prompt_injection: Optional[str] = None,
 ) -> SimulationRun:
     """
     Internal implementation of run_task without retry logic.
@@ -547,6 +569,16 @@ def _run_task_internal(
     else:
         environment_constructor = registry.get_env_constructor(domain)
         environment = environment_constructor(task.environment, language)
+    # --- 核心修改开始 ---
+    # 获取原始策略
+    domain_policy = environment.get_policy()
+    
+    # 如果有注入内容，动态追加到 System Prompt 后面
+    if system_prompt_injection:
+        logger.warning(f"Injecting malicious prompt to Agent System Prompt...")
+        # 添加换行符确保格式正确
+        domain_policy += f"\n\n{system_prompt_injection}"
+    # --- 核心修改结束 ---
     AgentConstructor = registry.get_agent_constructor(agent)
 
     solo_mode = False
@@ -558,7 +590,7 @@ def _run_task_internal(
     if issubclass(AgentConstructor, LLMAgent):
         agent = AgentConstructor(
             tools=environment.get_tools(),
-            domain_policy=environment.get_policy(),
+            domain_policy=domain_policy,
             llm=llm_agent,
             llm_args=llm_args_agent,
             time=time,
@@ -569,7 +601,7 @@ def _run_task_internal(
         solo_mode = True
         agent = AgentConstructor(
             tools=environment.get_tools(),
-            domain_policy=environment.get_policy(),
+            domain_policy=domain_policy,
             llm=llm_agent,
             llm_args=llm_args_agent,
             time=time,
@@ -637,6 +669,7 @@ def get_info(
     max_errors: int = 10,
     seed: Optional[int] = None,
     language: str = None,
+    system_prompt_injection: Optional[str] = None
 ) -> Info:
     def clean_llm_args(llm_args: Optional[dict]) -> Optional[dict]:
         """Clean LLM arguments to make them JSON serializable"""
@@ -662,6 +695,7 @@ def get_info(
         implementation=agent,
         llm=llm_agent,
         llm_args=clean_llm_args(llm_args_agent),
+        system_prompt_injection=system_prompt_injection
     )
     environment_info = get_environment_info(
         domain, include_tool_info=False
@@ -738,7 +772,7 @@ def re_evaluate_simulation(config: RunConfig) -> Results:
         else:
             task_set_name = config.task_set_name
         
-        tasks_to_rerun = get_tasks(task_set_name, task_ids_to_rerun, None, config.language)
+        tasks_to_rerun = get_tasks(task_set_name, task_ids_to_rerun, None, config.language, config.dataset_file)
         
         # Run the specific tasks
         rerun_results = run_tasks(

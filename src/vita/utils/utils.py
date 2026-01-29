@@ -24,8 +24,22 @@ SOURCE_DIR = Path(__file__).parents[3]
 DATA_DIR = SOURCE_DIR / "data"
 DOMAIN_DIR = DATA_DIR / "vita" / "domains"
 
-def get_task_file_path(domain: str, language: str = None) -> Path:
-    """Return corresponding task file path based on language parameter"""
+def get_task_file_path(domain: str, language: str = None, dataset_file: str = None) -> Path:
+    """Return corresponding task file path based on language parameter or custom dataset file
+    
+    Args:
+        domain: The domain name (e.g., 'ota', 'delivery')
+        language: The language to use ('chinese' or 'english')
+        dataset_file: Optional custom dataset file name. If provided, this takes precedence over language-based selection.
+    
+    Returns:
+        Path to the task file
+    """
+    # If custom dataset file is provided, use it directly
+    if dataset_file is not None:
+        return DOMAIN_DIR / domain / dataset_file
+    
+    # Otherwise, use language-based selection
     if language is None:
         language = DEFAULT_LANGUAGE
     
@@ -158,26 +172,13 @@ def edit_distance_score(s1: str, s2: str):
 
 
 def rerank(keywords: str, docs: Dict[str, str], with_score: bool = False):
-    # Ensure there are no duplicate values in docs
-    robust_docs = {}
-    val_set = set()
-    for key, val in docs.items():
-        while val in val_set:
-            # Add a dummy suffix to the value
-            val += "-"
-
-        val_set.add(val)
-        robust_docs[key] = val
-
-    candidates = [doc for doc in robust_docs.values()]
-    doc_dict_reverse = {val: key for key, val in robust_docs.items()}
-
+    candidates = [doc for doc in docs.values()]
+    doc_dict_reverse = {val: key for key, val in docs.items()}
     docs_sorted = process.extract(keywords, candidates, limit=None, scorer=fuzz.partial_ratio)
     if with_score:
         id_doc_sorted = [(doc_dict_reverse[doc], doc, score) for doc, score in docs_sorted]
     else:
         id_doc_sorted = [(doc_dict_reverse[doc], doc) for doc, _ in docs_sorted]
-
     return id_doc_sorted
 
 

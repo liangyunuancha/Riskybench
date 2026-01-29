@@ -140,89 +140,33 @@ class DeliveryTools(ToolKitBase):
 
     @is_tool(ToolType.READ)
     def get_delivery_store_info(self, store_id: str) -> str:
-        assert store_id, "Store ID cannot be empty"
-        try:
-            resp = self._get_store(store_id)
-            return repr(resp)
-        except ValueError as e:
-            return f"Error: {e}"
+        resp = self._get_store(store_id)
+        return repr(resp)
 
     @is_tool(ToolType.READ)
     def get_delivery_product_info(self, product_id: str) -> str:
-        assert product_id, "Product ID cannot be empty"
-        try:
-            resp = self._get_store_product(product_id)
-            return repr(resp)
-        except ValueError as e:
-            return f"Error: {e}"
+        resp = self._get_store_product(product_id)
+        return repr(resp)
 
     @is_tool(ToolType.READ)
-    def delivery_store_search_recommend(self, keywords: List[str]) -> str:
-        assert keywords, "Keywords cannot be empty"
-        assert isinstance(keywords, list), "Keywords must be a list"
-        assert all(isinstance(kw, str) and kw.strip() for kw in keywords), "All keywords must be non-empty strings"
-        
-        top_k = 50
+    def delivery_store_search_recommand(self, keywords: List[str]) -> str:
+        top_k = 100
         store_tag_dict = self._get_store_tags()
-        if not store_tag_dict:
-            return "No stores available"
-        
-        try:
-            keywords_str = "".join(keywords)
-            assert keywords_str and keywords_str.strip(), "Keywords cannot be empty"
-            id_candidates_sorted = rerank(keywords_str, store_tag_dict)
-            selected_ids = [ic[0] for ic in id_candidates_sorted[:top_k]]
-            if not selected_ids:
-                return "No stores found matching the keywords"
-            
-            selected_stores = []
-            for store_id in selected_ids:
-                try:
-                    selected_stores.append(str(self._get_store(store_id)))
-                except ValueError:
-                    continue
-            
-            if not selected_stores:
-                return "No stores found matching the keywords"
-            
-            selected_stores_repr = "\n".join(selected_stores)
-            return selected_stores_repr
-        except Exception as e:
-            return f"Error searching stores: {e}"
+        id_candidates_sorted = rerank("".join(keywords), store_tag_dict)
+        selected_ids = [ic[0] for ic in id_candidates_sorted[:top_k]]
+        selected_stores = [str(self._get_store(store_id)) for store_id in selected_ids]
+        selected_stores_repr = "\n".join(selected_stores)
+        return selected_stores_repr
 
     @is_tool(ToolType.READ)
-    def delivery_product_search_recommend(self, keywords: List[str]) -> str:
-        assert keywords, "Keywords cannot be empty"
-        assert isinstance(keywords, list), "Keywords must be a list"
-        assert all(isinstance(kw, str) and kw.strip() for kw in keywords), "All keywords must be non-empty strings"
-        
-        top_k = 50
+    def delivery_product_search_recommand(self, keywords: List[str]) -> str:
+        top_k = 100
         product_tag_dict = self._get_store_product_tags()
-        if not product_tag_dict:
-            return "No products available"
-        
-        try:
-            keywords_str = "".join(keywords)
-            assert keywords_str and keywords_str.strip(), "Keywords cannot be empty"
-            id_candidates_sorted = rerank(keywords_str, product_tag_dict)
-            selected_ids = [ic[0] for ic in id_candidates_sorted[:top_k]]
-            if not selected_ids:
-                return "No products found matching the keywords"
-            
-            product_list = []
-            for product_id in selected_ids:
-                try:
-                    product_list.append(self._get_store_product(product_id))
-                except ValueError:
-                    continue
-            
-            if not product_list:
-                return "No products found matching the keywords"
-            
-            selected_products_repr = "\n".join([repr(product) for product in product_list])
-            return selected_products_repr
-        except Exception as e:
-            return f"Error searching products: {e}"
+        id_candidates_sorted = rerank("".join(keywords), product_tag_dict)
+        selected_ids = [ic[0] for ic in id_candidates_sorted[:top_k]]
+        product_list = [self._get_store_product(product_id) for product_id in selected_ids]
+        selected_products_repr = "\n".join([repr(product) for product in product_list])
+        return selected_products_repr
 
     @is_tool(ToolType.WRITE)
     def create_delivery_order(
@@ -306,71 +250,39 @@ class DeliveryTools(ToolKitBase):
 
     @is_tool(ToolType.WRITE)
     def pay_delivery_order(self, order_id: str) -> str:
-        assert order_id, "Order ID cannot be empty"
-        try:
-            order = self._get_delivery_order(order_id)
-        except ValueError as e:
-            return f"Error: {e}"
-        
+        order = self._get_delivery_order(order_id)
         if order.status == "unpaid":
             order.status = "paid"
-            order.update_time = self.get_now("%Y-%m-%d %H:%M:%S")
-            resp = self._modify_delivery_order(order)
-            if resp == "done":
-                return "Payment successful"
-            else:
-                return f"Payment failed: {resp}"
+            self._modify_delivery_order(order)
         else:
-            return f"Order {order_id} is not in `unpaid` status. Current status: {order.status}"
+            return "Order is not in `unpaid` status."
+        return "Payment successful"
 
     @is_tool(ToolType.READ)
     def get_delivery_order_status(self, order_id: str) -> str:
-        assert order_id, "Order ID cannot be empty"
-        try:
-            order = self._get_delivery_order(order_id)
-            return f"Order {order_id} status: {order.status}"
-        except ValueError as e:
-            return f"Error: {e}"
+        order = self._get_delivery_order(order_id)
+        return order.status
 
     @is_tool(ToolType.WRITE)
     def cancel_delivery_order(self, order_id: str) -> str:
-        assert order_id, "Order ID cannot be empty"
-        try:
-            order = self._get_delivery_order(order_id)
-        except ValueError as e:
-            return f"Error: {e}"
-        
-        if order.status in ["cancelled"]:
-            return f"Order {order_id} is already cancelled"
-        
+        order = self._get_delivery_order(order_id)
+        assert order.status not in ["cancelled"], f"Order {order_id} is already cancelled"
         order.status = "cancelled"
-        order.update_time = self.get_now("%Y-%m-%d %H:%M:%S")
         resp = self._modify_delivery_order(order)
         if resp == "done":
             return f"Order {order.order_id} has been cancelled."
         else:
-            return f"Cancellation failed: {resp}"
+            return resp
 
     @is_tool(ToolType.WRITE)
     def modify_delivery_order(self, order_id: str, note: str) -> str:
-        assert order_id, "Order ID cannot be empty"
-        assert note is not None, "Note cannot be None (use empty string to clear note)"
-        
-        try:
-            order = self._get_delivery_order(order_id)
-        except ValueError as e:
-            return f"Error: {e}"
-        
-        if order.status in ["cancelled"]:
-            return f"Cannot modify order {order_id} as it is already cancelled"
-        
+        order = self._get_delivery_order(order_id)
         order.note = note
-        order.update_time = self.get_now("%Y-%m-%d %H:%M:%S")
         resp = self._modify_delivery_order(order)
         if resp == "done":
             return f"Order {order.order_id} has been modified."
         else:
-            return f"Modification failed: {resp}"
+            return resp
 
     @is_tool(ToolType.READ)
     def search_delivery_orders(self, user_id: str, status: Optional[OrderStatus] = "unpaid") -> str:
@@ -390,8 +302,5 @@ class DeliveryTools(ToolKitBase):
     @is_tool(ToolType.READ)
     def get_delivery_order_detail(self, order_id: str) -> str:
         assert order_id, "Order ID cannot be empty"
-        try:
-            order = self._get_delivery_order(order_id)
-            return repr(order)
-        except ValueError as e:
-            return f"Error: {e}"
+        order = self._get_delivery_order(order_id)
+        return repr(order)
